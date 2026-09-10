@@ -19,7 +19,7 @@ in the Clay Mathematics Institute’s [official problem description](https://www
 of the [Navier–Stokes existence and smoothness](https://www.claymath.org/millennium/navier-stokes-equation/)
 [Millennium Prize Problem](https://www.claymath.org/millennium-problems/).
 
-The repository separates the reference challenge from the independent solution module. The configured comparator manifest names `ComparatorChallenges.NavierStokes` as the challenge and `NavierStokes.ComparatorSolution` as the solution. fileciteturn11file0
+The repository separates the reference challenge from the independent solution module. The configured comparator manifest names `ComparatorChallenges.NavierStokes` as the challenge and `NavierStokes.ComparatorSolution` as the solution.
 
 ## Verification workflow
 
