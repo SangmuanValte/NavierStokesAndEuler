@@ -1,0 +1,67 @@
+name: Formal Verification
+
+on:
+  push:
+    branches:
+      - verification/ci
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact witness
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install elan and pinned Lean toolchain
+        run: |
+          set -euo pipefail
+          curl https://elan.lean-lang.org/elan-init.sh -sSf | sh -s -- --default-toolchain none -y
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          export PATH="$HOME/.elan/bin:$PATH"
+          elan show
+          lean --version
+          lake --version
+
+      - name: Record verification inputs
+        run: |
+          set -euo pipefail
+          echo "commit=$(git rev-parse HEAD)" | tee verification-inputs.txt
+          echo "toolchain=$(cat lean-toolchain)" | tee -a verification-inputs.txt
+          echo "lake_manifest_sha256=$(sha256sum lake-manifest.json | cut -d' ' -f1)" | tee -a verification-inputs.txt
+          echo "navier_stokes_config_sha256=$(sha256sum ComparatorChallenges/NavierStokes.json | cut -d' ' -f1)" | tee -a verification-inputs.txt
+          echo "euler_config_sha256=$(sha256sum ComparatorChallenges/Euler.json | cut -d' ' -f1)" | tee -a verification-inputs.txt
+
+      - name: Fetch dependency caches
+        run: lake exe cache get
+
+      - name: Build
+        run: lake build
+
+      - name: Comparator — Navier-Stokes
+        run: lake exe comparator ComparatorChallenges/NavierStokes.json
+
+      - name: Comparator — Euler
+        run: lake exe comparator ComparatorChallenges/Euler.json
+
+      - name: Hash verification inputs
+        run: |
+          set -euo pipefail
+          sha256sum verification-inputs.txt > verification-inputs.sha256
+
+      - name: Upload verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verification-evidence
+          path: |
+            verification-inputs.txt
+            verification-inputs.sha256
