@@ -1,17 +1,17 @@
 # Finite time blowup for Navier–Stokes and Euler equations
 
+[![Verify Navier–Stokes Contribution](https://github.com/SangmuanValte/NavierStokesAndEuler/actions/workflows/verify-navier-stokes.yml/badge.svg)](https://github.com/SangmuanValte/NavierStokesAndEuler/actions/workflows/verify-navier-stokes.yml)
+
 This repository contains Lean 4 formalizations of the results presented in
 “Finite time blowup for Navier–Stokes” and
 “Finite time blowup for the Euler equation” by OpenAI.
 
 ## Navier Stokes
 
-For every positive viscosity, we prove two results:
+For every positive viscosity, the current comparator submission targets two results:
 
-- **Whole space $\mathbb{R}^3$:** There exist smooth initial data and forcing for
-  which no global smooth solution with uniformly bounded kinetic energy exists.
-- **Periodic torus $\mathbb{R}^3/\mathbb{Z}^3$:** There exist smooth periodic
-  initial data and forcing for which no global smooth solution exists.
+- **Whole space $\mathbb{R}^3$:** a breakdown alternative in which there exist smooth initial data and forcing for which no global smooth solution with uniformly bounded kinetic energy exists.
+- **Periodic torus $\mathbb{R}^3/\mathbb{Z}^3$:** a breakdown alternative in which there exist smooth periodic initial data and forcing for which no global smooth solution exists.
 
 These are alternatives [**(C)**](https://www.claymath.org/wp-content/uploads/2022/06/navierstokes.pdf#page=2) “Breakdown of Navier–Stokes solutions on ℝ³”
 and [**(D)**](https://www.claymath.org/wp-content/uploads/2022/06/navierstokes.pdf#page=2) “Breakdown of Navier–Stokes Solutions on ℝ³/ℤ³”
@@ -19,12 +19,20 @@ in the Clay Mathematics Institute’s [official problem description](https://www
 of the [Navier–Stokes existence and smoothness](https://www.claymath.org/millennium/navier-stokes-equation/)
 [Millennium Prize Problem](https://www.claymath.org/millennium-problems/).
 
-## Euler
+The repository separates the reference challenge from the independent solution module. The configured comparator manifest names `ComparatorChallenges.NavierStokes` as the challenge and `NavierStokes.ComparatorSolution` as the solution. fileciteturn11file0
 
-We construct smooth, compactly supported, divergence-free initial velocity on
-$\mathbb{R}^3$ whose solution to the unforced incompressible Euler equations
-develops a singularity in finite time. The velocity’s $C^1$ norm becomes unbounded
-near that time, and the time integral of the vorticity’s $L^\infty$ norm diverges.
+## Verification workflow
+
+Every relevant push or pull request runs the public GitHub Actions verification workflow. It:
+
+1. installs the pinned Lean toolchain and restores the Mathlib cache;
+2. builds the complete Lake project;
+3. checks that `NavierStokes.ComparatorSolution` does not import the challenge module;
+4. rejects `sorry` and `admit` in the solution module;
+5. records the Lean kernel axiom report and rejects `sorryAx` in that report; and
+6. publishes a run-specific verification report as a GitHub Actions artifact.
+
+The workflow verifies the formal build and the separation between challenge and solution. It is **not, by itself, a claim of independent mathematical verification of the Navier–Stokes Millennium Prize Problem**.
 
 ## Building the formalizations
 
