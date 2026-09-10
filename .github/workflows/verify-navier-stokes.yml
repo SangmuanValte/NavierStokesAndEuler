@@ -1,0 +1,117 @@
+name: Verify Navier–Stokes Contribution
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**/*.lean'
+      - 'ComparatorChallenges/**'
+      - 'ComparatorChallenges/*.json'
+      - 'lakefile.toml'
+      - 'lake-manifest.json'
+      - 'lean-toolchain'
+      - '.github/workflows/verify-navier-stokes.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - '**/*.lean'
+      - 'ComparatorChallenges/**'
+      - 'ComparatorChallenges/*.json'
+      - 'lakefile.toml'
+      - 'lake-manifest.json'
+      - 'lean-toolchain'
+      - '.github/workflows/verify-navier-stokes.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: navier-stokes-verification-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Build and verify proof boundary
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Install Lean and restore Mathlib cache
+        uses: leanprover/lean-action@v1
+        with:
+          use-mathlib-cache: true
+          build: false
+
+      - name: Build project
+        run: lake build
+
+      - name: Verify solution does not import the challenge
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -nE '^import[[:space:]]+ComparatorChallenges([.]|$)' NavierStokes/ComparatorSolution.lean; then
+            echo 'ERROR: ComparatorSolution.lean imports the challenge module.'
+            exit 1
+          fi
+          echo 'PASS: solution module does not import ComparatorChallenges.'
+
+      - name: Verify solution contains no sorry/admit placeholders
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -nE '\b(sorry|admit)\b' NavierStokes/ComparatorSolution.lean; then
+            echo 'ERROR: solution module contains sorry/admit.'
+            exit 1
+          fi
+          echo 'PASS: solution module contains no sorry/admit placeholders.'
+
+      - name: Export kernel axiom report
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p verification
+          lake env lean NavierStokes/ComparatorSolution.lean 2>&1 | tee verification/solution-axioms.txt
+
+          if grep -q 'sorryAx' verification/solution-axioms.txt; then
+            echo 'ERROR: solution theorem depends on sorryAx.'
+            exit 1
+          fi
+
+          cat > verification/verification-report.md <<EOF
+          # Navier–Stokes verification report
+
+          - Repository: ${GITHUB_REPOSITORY}
+          - Commit: ${GITHUB_SHA}
+          - Ref: ${GITHUB_REF}
+          - Workflow run: ${GITHUB_RUN_ID}
+          - Lean toolchain: $(cat lean-toolchain)
+          - Comparator challenge: ComparatorChallenges/NavierStokes.json
+          - Solution module: NavierStokes/ComparatorSolution
+
+          ## Checks
+
+          - Lean project build: **PASS**
+          - Solution imports challenge module: **NO**
+          - `sorry`/`admit` in solution module: **NO**
+          - `sorryAx` in solution axiom report: **NO**
+
+          ## Epistemic boundary
+
+          This workflow verifies the repository's formal build and proof boundary. It does **not** by itself establish an independent mathematical proof of the Navier–Stokes Millennium Prize Problem. The configured comparator targets are the repository's breakdown alternatives (C) and (D).
+          EOF
+
+      - name: Publish verification summary
+        shell: bash
+        run: cat verification/verification-report.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload verification evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: navier-stokes-verification-${{ github.sha }}
+          path: verification/
+          if-no-files-found: error
