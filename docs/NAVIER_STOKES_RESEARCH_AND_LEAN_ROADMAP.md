@@ -229,7 +229,7 @@ The following are theorem contracts and implementation milestones, not assertion
 The README describes the `sorry`/ `admit` check as a solution-module check. The current workflow command instead searches every tracked Lean file:
 
 ```bash
-matches=$(git ls-files '*.lean' | xargs -r grep -nE '\\b(sorry|admit)\\b' || true)
+matches=$(git ls-files '*.lean' | xargs -r grep -nE '\b(sorry|admit)\b' || true)
 ```
 
 The reference file `ComparatorChallenges/NavierStokes.lean` visibly contains intentional `sorry` theorem placeholders. Therefore, the current repository-wide grep includes the challenge module and is inconsistent with the documented intention to reject placeholders in the solution module only. This is a static source finding; no workflow run was executed as part of this document.
